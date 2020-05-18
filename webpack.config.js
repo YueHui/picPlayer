@@ -3,21 +3,27 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const {CleanWebpackPlugin} = require('clean-webpack-plugin');
 
 module.exports = {
-	entry: {
-		dev:"./src/dev.js",
-		main:'./src/index.js',
-	},
-	devServer: {
-		contentBase: './dist'
-	},
-	plugins: [
-		new CleanWebpackPlugin(),
-		new HtmlWebpackPlugin({
-			title: 'picPlayer'
-		})
-	],
-	output: {
-		filename: '[name].bundle.js',
-		path: path.resolve(__dirname, 'dist')
-	}
+    entry: './src/index.js',
+    output: {
+        filename: 'picPlayer.js',
+        path: path.resolve(__dirname, 'dist'),
+        libraryTarget: 'umd',
+        libraryExport: 'default',
+        library: 'PicPlayer',
+        umdNamedDefine: true
+    },
+    devServer: {
+        contentBase: './'
+    },
+    plugins: [
+        new CleanWebpackPlugin(),
+        new HtmlWebpackPlugin({
+            title: 'picPlayer',
+            template: "index.html",
+            inject:false
+        })
+    ],
+    module:{
+        
+    }
 };
