@@ -1,26 +1,18 @@
 import { gsap } from "gsap";
-import { PixiPlugin } from "gsap/PixiPlugin";
-
-// register the plugin
-gsap.registerPlugin(PixiPlugin);
 
 // give the plugin a reference to the PIXI object
-PixiPlugin.registerPIXI(PIXI);
+// PixiPlugin.registerPIXI(PIXI);
 
 class PicPlayer {
 	constructor(config) {
 		const _config = {
 			root: "picPlayer",
-			images: [],
-			width: window.innerWidth,
-			height: window.innerHeight
+			images: []
 		};
 		this.config = {
 			..._config,
 			...config
 		};
-		this.width = this.config.width;
-		this.height = this.config.height;
 		this.loader = PIXI.Loader.shared;
 		this.stage = null;
 
@@ -38,12 +30,22 @@ class PicPlayer {
 		if (!rootNode) {
 			throw new Error("need to given a HTML element or id");
 		}
+		this.width = rootNode.offsetWidth;
+		this.height = rootNode.offsetHeight;
+		
 		const app = new PIXI.Application({
-			width: this.config.width,
-			height: this.config.height,
+			width: this.width,
+			height: this.height,
 		});
 		rootNode.appendChild(app.view);
+		app.resizeTo = rootNode;
 		this.stage = app.stage;
+
+		window.addEventListener("resize",()=>{
+			app.resize();
+			this.width = rootNode.innerWidth;
+			this.height = rootNode.innerHeight;
+		})
 	}
 	loadImages() {
 		const text = new PIXI.Text(`加载中... 0%`, {
@@ -55,15 +57,28 @@ class PicPlayer {
 		this.loader.onProgress.add(({
 			progress
 		}) => {
-			text.text = `加载中... ${progress}%`;
+			text.text = `加载中... ${progress | 0}%`;
 		});
 		this.loader.add(this.config.images).load(() => {
 			this.stage.removeChild(text);
-			this.showImages();
+			this.initEvents();
+			this.showNextImage();
 		});
 	}
-	showImages() {
-		console.log(this.loader.resources);
+	initEvents(){
+		this.stage.interactive = true;
+		this.stage.on("click",()=>{
+			if(this.config.images[this.playIndex]){
+				this.showNextImage();
+			}else{
+				console.log("end")
+			}
+			
+		})
+	}
+	showNextImage() {
+		// console.log(this.loader.resources);
+		
 		const image = new PIXI.Sprite(this.loader.resources[this.config.images[this.playIndex]].texture);
 		if (this.width > this.height) {
 			image.height = this.height;
@@ -75,7 +90,8 @@ class PicPlayer {
 			image.y = this.height/2 - image.height/2;
 		}
 		this.stage.addChild(image);
-		gsap.from(image, {pixi: {y:-image.height}, duration:1.5,ease:"Bounce.easeOut"});
+		gsap.from(image, {y:-image.height,duration:1.5,ease:"Bounce.easeOut"});
+		this.playIndex++;
 	}
 }
 
