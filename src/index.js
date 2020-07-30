@@ -7,6 +7,7 @@ class PicPlayer {
 	constructor(config) {
 		const _config = {
 			root: "picPlayer",
+			preload: 50,
 			images: []
 		};
 		this.config = {
@@ -21,6 +22,7 @@ class PicPlayer {
 
 		this.init();
 		this.loadImages();
+		this.animate  = null;
 	}
 	init() {
 		let rootNode = this.config.root;
@@ -41,6 +43,15 @@ class PicPlayer {
 		app.resizeTo = rootNode;
 		this.stage = app.stage;
 
+		const imageContain = new PIXI.Container();
+		this.stage.addChild(imageContain);
+
+		const animateContain = new PIXI.Container();
+		this.stage.addChild(animateContain);
+
+		this.imageContain = imageContain;
+		this.animateContain = animateContain;
+
 		window.addEventListener("resize",()=>{
 			app.resize();
 			this.width = rootNode.innerWidth;
@@ -59,7 +70,10 @@ class PicPlayer {
 		}) => {
 			text.text = `加载中... ${progress | 0}%`;
 		});
-		this.loader.add(this.config.images).load(() => {
+		for(let i=0;i<Math.min(this.config.preload,this.config.images.length);i++){
+            this.loader.add(`img${i}`,this.config.images[i]);
+        }
+		this.loader.load(() => {
 			this.stage.removeChild(text);
 			this.initEvents();
 			this.showNextImage();
@@ -78,19 +92,45 @@ class PicPlayer {
 	}
 	showNextImage() {
 		// console.log(this.loader.resources);
-		
-		const image = new PIXI.Sprite(this.loader.resources[this.config.images[this.playIndex]].texture);
-		if (this.width > this.height) {
-			image.height = this.height;
-			image.scale.x = image.scale.y;
-			image.x = this.width/2 - image.width/2;
+		let image,text;
+		const resourceSize = Object.keys(this.loader.resources).length;
+		if(resourceSize-1>=this.playIndex){
+			image = new PIXI.Sprite(this.loader.resources[`img${this.playIndex}`].texture);
+			if (this.width > this.height) {
+				image.height = this.height;
+				image.scale.x = image.scale.y;
+				image.x = this.width/2 - image.width/2;
+			}else{
+				image.width = this.width;
+				image.scale.y = image.scale.x;
+				image.y = this.height/2 - image.height/2;
+			}
+			this.animateContain.removeChildren();
+			this.animateContain.addChild(image);
 		}else{
-			image.width = this.width;
-			image.scale.y = image.scale.x;
-			image.y = this.height/2 - image.height/2;
+			text = new PIXI.Text(`加载中... 0%`, {
+				fill: "0xfff"
+			});
+			text.x = this.width / 2 - 100;
+			text.y = this.height / 2 - 100;
+			this.animateContain.removeChildren();
+			this.animateContain.addChild(text);
 		}
-		this.stage.addChild(image);
-		gsap.from(image, {y:-image.height,duration:1.5,ease:"Bounce.easeOut"});
+		if(this.animate){
+			this.animate.progress(100);
+		}
+		this.animate = gsap.from(
+			this.animateContain, 
+			{
+				y:-this.height,
+				duration:1.5,
+				ease:"Bounce.easeOut",
+				onComplete:()=>{
+					this.imageContain.removeChildren();
+					this.imageContain.addChild(image || text);
+				}
+			}
+		);
 		this.playIndex++;
 	}
 }
